@@ -1,0 +1,47 @@
+<?php // $Id: juitter.install,v 1.1 2009/08/20 15:08:10 doublethink Exp $
+
+/**
+ * Implementaton of hook_install
+ */
+function juitter_install() {
+  drupal_install_schema('juitter');
+  drupal_set_message(t("<b>Juitter</b> is installed successfully.<br />Click here to visit the <a href=@href>settings page</a>!", array('@href' => base_path() . 'admin/settings/juitter')));
+}
+
+/**
+ * Implementaton of hook_uninstall
+ */
+function juitter_uninstall() {
+  db_query("DELETE FROM {variable} WHERE name LIKE 'juitter_%'");
+  db_query("DELETE FROM {system} WHERE name = 'juitter'");
+  drupal_uninstall_schema('juitter');
+}
+
+function juitter_schema() {
+  $schema['juitter'] = array(
+    // example (partial) specification for table "node"
+    'description' => 'Base table for Juitter module settings.',
+    'fields' => array(
+      'trend_id' => array(
+        'description' => 'The primary identifier for a trend.',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE),
+      'weight' => array(
+        'description' => 'The weight for a trend.',
+        'type' => 'int',
+        'unsigned' => FALSE,),
+      'title' => array(
+        'description' => 'The title of a trend.',
+        'type' => 'varchar',
+        'length' => 256,
+        'default' => ''),
+      'settings' => array(
+        'description' => 'The settings for a trend.',
+        'type' => 'text',
+        'default' => ''),
+      ),
+    'primary key' => array('trend_id'),
+  );
+  return $schema;
+}

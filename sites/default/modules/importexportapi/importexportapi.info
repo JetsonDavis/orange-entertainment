@@ -1,0 +1,12 @@
+; $Id: importexportapi.info,v 1.3.2.1 2009/05/05 17:48:44 earnie Exp $
+name = Import Export API
+description = Allows data entities in Drupal to be imported and exported in a variety of formats.
+package = Import Export API
+core = 6.x
+
+; Information added by drupal.org packaging script on 2009-10-13
+version = "6.x-1.x-dev"
+core = "6.x"
+project = "importexportapi"
+datestamp = "1255392839"
+

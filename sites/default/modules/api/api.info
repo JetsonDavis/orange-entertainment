@@ -1,0 +1,14 @@
+; $Id: api.info,v 1.6.2.1 2009/08/07 07:14:58 drumm Exp $
+name = API
+description = Generates and displays API documentation pages.
+package = Development
+core = 6.x
+dependencies[] = job_queue
+dependencies[] = node
+
+; Information added by drupal.org packaging script on 2009-08-24
+version = "6.x-1.2"
+core = "6.x"
+project = "api"
+datestamp = "1251085502"
+

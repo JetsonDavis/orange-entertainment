@@ -1,0 +1,224 @@
+<?php
+
+// $Id$
+
+/**
+ * @file
+ * Lets users add private annotations to nodes.
+ *
+ * Adds a text field when a node is displayed
+ * so that authenticated users may make notes.
+ */
+
+/**
+ * Implementation of hook_menu().
+ */
+function annotate_menu() {
+  $items['admin/settings/annotate'] = array(
+    'title' => 'Annotation settings',
+    'description' => 'Change how annotations behave',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('annotate_admin_settings'),
+    'access arguments' => array('administer site configuration'),
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'annotate.admin.inc',
+  );
+
+	$items['checkbox_callback'] = array(
+		'page callback' => 'checkbox_callback',
+		'page arguments' => array('checkbox_callback'),
+		'access callback' => TRUE,
+		'type' => MENU_CALLBACK,
+	);
+  
+  return $items;
+}
+
+/**
+ * Implementation of hook_nodeapi().
+ */
+function annotate_nodeapi(&$node, $op, $teaser, $page) {
+  global $user;
+
+	 if($op == 'load' && isset($_SESSION['redirect_delete']))
+	  {
+	 	   $destination = $_SESSION['redirect_delete'];
+		    unset($_SESSION['redirect_delete']);
+		    drupal_goto($destination);
+	  }
+	
+  switch ($op) {
+    // The 'view' operation means the node is about to be displayed.
+
+    case 'prepare': // <-- Here...
+	  watchdog('nodeapi','prepare');
+	  jquerytools_add('tabs','ul.tabss','div.panes > div.tab_pane');
+      break;
+
+	case 'view':
+	
+      // Abort if the user is an anonymous user (not logged in) or
+      // if the node is not being displayed on a page by itself
+      // (for example, it could be in a node listing or search result).
+      if ($user->uid == 0 || !$page) {
+        break;
+      }
+      // Find out which node types we should annotate.
+      $types_to_annotate = variable_get('annotate_node_types', array('page','story'));
+      
+      // Abort if this node is not one of the types we should annotate.
+      if (!in_array($node->type, $types_to_annotate, TRUE)) {
+        break;
+      }
+      
+      // Get the current annotation for this node from the database
+      // and store it in the node object.
+      $result = db_query('SELECT note FROM {annotations} WHERE nid = %d AND uid = %d', $node->nid, $user->uid);
+      $node->annotation = db_result($result);
+
+      // Add our form as a content item.
+      $node->content['annotation_form'] = array(
+        '#value' => drupal_get_form('annotate_entry_form', $node),
+        '#weight' => 10
+      );
+      break;
+      
+    case 'delete':
+
+	  $_SESSION['redirect_delete'] = 'subslog';
+      db_query('DELETE FROM {annotations} WHERE nid = %d', $node->nid);
+		
+      break;
+
+    case 'presave':
+
+	if ($node->form_id == "company_node_form") {
+	$node->title = $node->field_compname[0]['value'];}
+	break;
+
+  }
+}
+
+
+function annotate_form_alter(&$form, $form_state, $form_id) {
+  if ($form_id == 'film_node_form') {
+	//dsm($form);
+    // Overwrite the default node submission handler with our own.
+    $form['buttons']['submit']['#submit'][] = 'annotate_film_form_submit';
+
+	$form['field_salescomp']['#prefix'] = "<div class='info-box'>
+	<ul class='tabss'>
+		<li><a href='elements'>Info</a></li>
+		<li><a href='elements'>Elements</a></li>
+		<li><a href='script_info'>Script Info</a></li>
+		<li><a href='script_info'>Festivals</a></li>
+		<li><a href='script_info'>Distribution</a></li>
+		<li><a href='script_info'>Notes</a></li>
+	</ul>
+	<div class='panes'>
+		<div class='tab_pane pane_1'><div class='left_top_box grid_7'>";
+	$form['field_poporart']['#suffix'] = "</div><div class='right_top_box grid_7'>";
+	$form['field_enteredby']['#suffix'] = "</div></div><div class='tab_pane pane_2'>";
+	$form['field_logline']['#prefix'] = "</div><div class='tab_pane pane_3'>";
+	$form['field_coveragetextonly']['#suffix'] = "</div><div class='tab_pane pane_4'>";
+	
+	$form['field_screenings']['#suffix']= "</div><div class='tab_pane pane_5'>";
+	$form['field_notes']['#prefix'] = "</div><div class='tab_pane pane_6'>";
+	$form['field_notes']['#suffix'] = "</div></div></div>";
+	//dsm($form);
+	//$form['field_cast']['#prefix'] = "<div id='field-cast-items' class='grid_8'>";
+}
+
+
+  if ($form_id == 'company_node_form') {
+    // Overwrite the default node submission handler with our own.
+    $form['buttons']['submit']['#submit'][] = 'annotate_company_form_submit';
+    $form['title']['#default_value'] = "dummy";}
+  if ($form_id == 'film_fests_node_form') {	
+    // Overwrite the default node submission handler with our own.
+    $form['buttons']['submit']['#submit'][] = 'annotate_fest_form_submit';}
+  if($form_id=='views_exposed_form') {
+
+	variable_set('territory_searched',$form_state['input']['field_terr_name_value_many_to_one']);
+	$form['submit']['#value']="Search";}
+}
+/**
+* Custom submit handler. Overwrites the form redirection variable.
+*/
+function annotate_film_form_submit($form, &$form_state) {
+	  $form_state['redirect'] = 'subslog';
+	}
+
+function annotate_company_form_submit($form, &$form_state) {
+
+	
+	$form_state['redirect'] = 'salescos';
+	}
+	
+function annotate_fest_form_submit($form, &$form_state) {
+	$form_state['redirect'] = 'filmfests';
+}
+
+function annotate_company_form_validate(&$form, &$form_state) {
+$form['#post']['field_compname'][0]['value'] = "test";
+//$form_state['values']['field_compname'][0]['value'] = "test";
+}
+
+function annotate_views_embed_form() {
+	  return array(
+	    // Key in this array is the name of a form and also the name of a form function.
+	    'annotate_form' => t('Form for testing module'),
+	  );
+	}
+	
+function annotate_form(&$form_state, $fields) {
+	//dsm($form_state);
+	//dsm($fields);
+	$default = array();
+	if ($fields->node_data_field_allpass_field_allpass_value == "All Pass") {$default[] = 'All Pass';}
+	if ($fields->node_data_field_filmlist_field_filmlist_value == "Film List" || $fields->node_data_field_allpass_field_filmlist_value == "Film List") {$default[] = 'Film List';
+	}
+	if ($fields->node_data_field_allpass_field_scriptlog_value == "Script Log" || $fields->node_data_field_scriptlog_field_scriptlog_value == "Script Log")  {$default[] = 'Script Log';}
+	if ($fields->node_data_field_allpass_field_tracking_value == "Tracking" || $fields->node_data_field_tracking_field_tracking_value == "Tracking") {$default[] = 'Tracking';}
+	if ($fields->node_data_field_allpass_field_coverageexists_value == "Print Coverage" || $fields->node_data_field_coverageexists_field_coverageexists_value == "Print Coverage") {$default[] = 'Print Coverage';}
+	
+	$form['checkboxes'] = array(
+			'#type' => 'checkboxes',
+			//'#title' => t('Approval Stage'),
+			'#default_value' => $default,
+			'#options' => array("Tracking"=>"Tracking", "All Pass"=>"All Pass","Film List" => "Film List", "Script Log"=>"Script Log","Print Coverage"=>"Print Coverage"),
+			'#attributes' => array('class'=>'node_'.$fields->nid),
+		);
+
+	return $form;
+}
+
+function annotate_form_submit($form, &$form_state) {
+	dsm($form_state);
+	watchdog('submit','form submitted');
+}
+
+function checkbox_callback(){
+
+	$nid = trim(strtolower(str_replace("form-checkbox ","",$_POST['node'])));
+	$nid = trim(strtolower(str_replace("node_","",$nid)));
+	$post_item = $_POST['value'];
+	$item = strtolower(str_replace(" ","",$_POST['value']));
+	watchdog("cc",$nid." - ".$item);
+	$node = node_load($nid);
+	
+	if ($item=="printcoverage") {$field = 'field_coverageexists';} else
+	{$field = 'field_'.$item;}
+	// field_coverageexists, field_filmlist, field_allpass, field_scriptlog, field_tracking
+	watchdog('before',$node->{$field}[0]['value']);
+	if (stripos($node->{$field}[0]['value'], "not") === FALSE ) {
+		$node->{$field}[0]['value'] = "Not ".$node->{$field}[0]['value'];	
+	}
+	else
+	{
+		$node->{$field}[0]['value'] = $post_item;
+	}
+	watchdog('after',$node->{$field}[0]['value']);
+	 $node = node_submit($node);
+	 node_save($node);
+}

@@ -1,0 +1,13 @@
+; $Id: importexportui.info,v 1.4.2.1 2009/05/05 17:48:44 earnie Exp $
+name = Import Export UI
+description = Provides a user interface for importing and exporting data in a Drupal site. Requires the importexportapi module.
+package = Import Export API
+dependencies[] = importexportapi
+core = 6.x
+
+; Information added by drupal.org packaging script on 2009-10-13
+version = "6.x-1.x-dev"
+core = "6.x"
+project = "importexportapi"
+datestamp = "1255392839"
+

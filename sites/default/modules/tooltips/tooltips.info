@@ -1,0 +1,17 @@
+; $Id
+name = Tool Tips 
+description = Filter for adding tool tips to text 100% CSS
+package = "Input filters"
+
+version = "6.x-1.0"
+core = "6.x"
+project = "tooltips"
+
+
+
+; Information added by drupal.org packaging script on 2009-04-06
+version = "6.x-1.1"
+core = "6.x"
+project = "tooltips"
+datestamp = "1238988094"
+

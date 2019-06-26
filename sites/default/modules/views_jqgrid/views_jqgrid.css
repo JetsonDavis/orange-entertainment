@@ -1,0 +1,12 @@
+.view-jqgrid table {
+  margin: 0;
+  border-collapse:separate;
+}
+
+.view-jqgrid tbody {
+  border: none;
+}
+
+.view-jqgrid td, .view-jqgrid th {
+  padding: 0;
+}

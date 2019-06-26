@@ -1,0 +1,21 @@
+name = Mirjams Theme
+description = Tableless, recolorable, multi-column, fluid width theme (default).
+version = VERSION
+core = 6.x
+engine = phptemplate
+ 
+regions[left] = Left sidebar (on right)
+regions[right] = Right sidebar (on right)
+regions[header] = Header
+regions[footer_left] = Left Footer
+regions[footer_right] = Right Footer
+regions[admin_left] = Left Admin Area
+regions[login] = Login Area
+
+stylesheets[all][] = css/reset.css
+stylesheets[all][] = css/main.css
+stylesheets[all][] = css/960.css
+stylesheets[all][] = css/tabs.css
+
+scripts[] = js/jquery.autofill.js
+scripts[] = js/mirjam_custom.js

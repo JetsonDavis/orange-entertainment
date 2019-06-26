@@ -1,0 +1,32 @@
+/* tooltip styling. uses a background image (a black box with an arrow) */ 
+div.tooltip { 
+    background:transparent url(black_arrow.png) no-repeat scroll 0 0; 
+    font-size:14px; 
+    height:153px; 
+    padding:30px; 
+    width:310px; 
+    font-size:14px; 
+    display:none; 
+    color:#fff;
+    font: 11px/165% 'Lucida Grande', Verdana, Helvetica, sans-serif; 
+} 
+ 
+ div.tooltip_180 { 
+     background:transparent url(black_arrow_180.png) no-repeat scroll 0 0; 
+     height:153px; 
+     padding:24px 10px 0px 14px; 
+     width:310px; 
+     font-size:14px; 
+     display:none; 
+     color:#fff;
+     font: 11px/165% 'Lucida Grande', Verdana, Helvetica, sans-serif;
+     text-transform: none;
+     word-wrap: break-word; 
+ }
+ 
+ /* tooltip title element (h3) */ 
+div.tooltip h3 { 
+    margin:0; 
+    font-size:18px; 
+    color:#fff; 
+}

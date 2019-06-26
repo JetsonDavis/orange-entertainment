@@ -1,0 +1,164 @@
+<?php // $Id: juitter.module,v 1.1.2.2 2009/08/21 21:32:03 doublethink Exp $
+
+function juitter_perm() {
+	return array('administer juitter settings');
+}
+
+function juitter_menu() {
+	$items = array();
+	$items['admin/settings/juitter'] = array(
+		'title' => t('Juitter settings'),
+		'description' => t('Set your custom settings for Juitter.'),
+		'page callback' => 'drupal_get_form',
+		'page arguments' => array('juitter_admin'),
+		'access arguments' => array('administer juitter settings'),
+		'file' => 'juitter.inc',
+	);
+	$items['admin/settings/juitter/%/edit'] = array(
+		'title' => t('Juitter trend settings'),
+		'page callback' => 'drupal_get_form',
+		'page arguments' => array('juitter_trend_settings', 3),
+		'access arguments' => array('administer juitter settings'),
+		'file' => 'juitter.inc',
+	);
+	$items['admin/settings/juitter/%/remove'] = array(
+		'title' => t('Juitter trend delete'),
+		'page callback' => 'drupal_get_form',
+		'page arguments' => array('juitter_remove_trend', 3),
+		'access arguments' => array('administer juitter settings'),
+		'file' => 'juitter.inc',
+	);
+	$settings = juitter_get_settings();
+	$items['juitter'] = array(
+		'title' => t(variable_get('juitter_page_title', 'Juitter')),
+		'description' => t('Set your custom settings for Juitter.'),
+		'page callback' => 'juitter_page',
+		'access arguments' => array('access content'),
+		'type' => MENU_NORMAL_ITEM,
+	);
+	$items['juitter/ahah'] = array(
+		'title' => t('Juitter AHAH callback'),
+		'description' => t('Juitter AHAH callback.'),
+		'page callback' => 'juitter_ahah_trends',
+		'access arguments' => array('administer juitter settings'),
+		'file' => 'juitter.inc',
+		'type' => MENU_CALLBACK,
+	);
+	return $items;
+}
+
+function juitter_get_settings($trend_id = NULL) {
+	if (is_null($trend_id)) {
+		$result = db_query('SELECT * FROM {juitter} ORDER BY weight');
+		while ($row = db_fetch_object($result)) {
+			$trends[] = array(
+				'trend_id' => $row->trend_id, 'title' => $row->title, 'settings' => $row->settings, 'weight' => $row->weight,
+			);
+		}
+		$trend_default_settings = array(
+			'weight' => 0, 'title' => 'Default trend',
+			'settings' => array(
+				'searchType' => 'searchWord', 'searchObject' => 'Drupal', 'lang' => '', 'live'	=> 30,
+				'loadMSG'	=> 'Loading messages...', 'imgName' => '',
+				'total' => 20, 'readMore' => 'Read it on Twitter', 'nameUser' => 'image',
+				'openExternalLinks' => 'newWindow', 'filter' => '',
+			),
+		);
+		if ( !isset($trends) ) db_query("INSERT INTO {juitter} (weight, title, settings) VALUES ('%d', '%s', '%s')", $trend_default_settings['weight'], $trend_default_settings['title'], serialize($trend_default_settings['settings']));
+		return $trends;
+	}
+	else {
+		$result = db_query('SELECT trend_id, title, settings, weight FROM {juitter} WHERE trend_id = %d', $trend_id);
+		while ($row = db_fetch_object($result)) {
+			$trend = array(
+				'trend_id' => $row->trend_id, 'title' => $row->title, 'settings' => $row->settings, 'weight' => $row->weight,
+			);
+		}
+	return $trend;
+	}
+}
+
+function juitter_add_files($process_for_js = false){
+	$settings = juitter_get_settings();
+	if ($process_for_js) $settings = juitter_process_settings($settings);
+	drupal_add_js(drupal_get_path('module', 'juitter') . '/js/jquery.juitter.js');
+	drupal_add_js(drupal_get_path('module', 'juitter') . '/js/juitter.js');
+	drupal_add_js(array('Juitter' => $settings), 'setting');
+	drupal_add_css(drupal_get_path('module', 'juitter') . '/css/juitter.css');
+}
+
+function juitter_process_settings(&$settings) {
+	$js_settings = array();
+	foreach ($settings as $trend) {
+		$key = 'trend_' . $trend['trend_id'];
+		$js_settings[$key] = unserialize($trend['settings']);
+		if($js_settings[$key]['imgName'] != '') $js_settings[$key]['loadMSG'] = 'image/gif';
+	}
+	if (variable_get('juitter_search', 1)) {
+		$js_settings['search'] = array(
+			'text' => variable_get('juitter_search_phrase', 'Search twitter:'),
+		);
+	}
+	return $js_settings;
+}
+
+function juitter_theme() {
+	return array(
+		'juitter' => array(
+			'template'	=> 'juitter',
+			'arguments' => array('trends' => NULL, 'search' => NULL, 'wrap_id' => 'juitterContainer'),
+		),
+		'juitter_admin_form_trends' => array(
+			'arguments' => array('form' => NULL),
+			'file' => 'juitter.inc',
+		),
+		'juitter_tabs' => array(
+			'arguments' => array('trends' => NULL),
+		),
+	);
+}
+
+function juitter_page() {
+	juitter_add_files(true);
+	$trends = juitter_get_settings();
+	foreach ($trends as $trend) {
+		$key = 'trend_' . $trend['trend_id'];
+		$tabs[$key] = array(
+			'href' => '#' . $key,
+			'title' => $trend['title'],
+			'attributes' => array(
+				'id' => $key,
+				'class' => 'juitterTab'
+			),
+		);
+	}
+	$trends = theme('juitter_tabs', $tabs);
+	if (variable_get('juitter_search', 1) != 0) {
+		$search_phrase = t(variable_get('juitter_search_text', 'Search twitter:'));
+		$search = "<form action=\"\" id=\"juitterSearch\" method=\"post\">\n
+					<input type=\"text\" value=\"{$search_phrase}\" class=\"juitterSearch\" onclick=\"this.value='';\"/>\n 
+				</form>";
+		return theme('juitter', $trends, $search);
+	}
+	else return theme('juitter', $trends);
+}
+
+function theme_juitter_tabs($trends) {
+	$output = '';
+	if (count($trends) > 0) {
+		$output = '<ul id="juitterTabsWrapper" class="links">';
+		$num_trends = count($trends);
+		$i = 1;
+		foreach ($trends as $key => $link) {
+			$class = $key;
+			$class .= ' ' . $link['attributes']['class'];
+			if ($i == 1) { $class .= ' first active'; }
+			if ($i == $num_trends) { $class .= ' last';	}
+			$output .= '<li class="' . $class .'">';
+			$output .= "<a href=\"{$link['href']}\" id=\"{$link['attributes']['id']}\" class=\"{$class}\">{$link['title']}</a>";
+			$output .= "</li>\n";
+			$i++;
+		}
+		$output .= '</ul>';
+	} return $output;
+}

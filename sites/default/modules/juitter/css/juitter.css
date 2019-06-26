@@ -1,0 +1,35 @@
+/* $Id: juitter.css,v 1.1.2.2 2009/08/21 19:58:46 doublethink Exp $ */
+/*JUITTER PLUGIN CSS*/
+
+#juitterContainer{} /*Juitter container*/
+
+#juitterContainer ul.twittList{margin:0;padding:0;} /* UL that will contain the list of tweets */
+
+/* Bellow the list of tweets "<li>" */
+
+#juitterContainer .twittLI{list-style:none;margin:0;padding:5px 0 0 0;border-bottom:dashed 1px #999;padding:3px;clear:both;height:55px;} 
+#juitterContainer .twittLI:hover{background:#eefdea;}
+#juitterContainer .twittList SPAN.time{color:#777;font-size:0.9em}
+#juitterContainer .twittList A{color:#006600;} /*Links inside the tweets list */
+
+/* Bellow the CSS for the avatar image  */
+
+#juitterContainer .juitterAvatar{float:left;border:solid 1px #aaa;background:#fff;margin-right:5px;padding:2px;width:48px;height:48px;}
+#juitterContainer .jRM{float:right;clear:both} /*read it on twitter link*/
+#juitterContainer .extLink{} /*CSS for the external links*/
+#juitterContainer .hashLink{} /*CSS for the hash links*/
+
+/* Bellow the CSS for the search box */
+
+#juitterSearch {margin:0 0 2em 0.5em;}
+#juitterSearch input {border:1px solid #aaa; padding:0.5em;width:30em;}
+#juitterSearch input:focus {background:#eefdea;}
+
+/* Bellow the CSS for the Trends tabs */
+
+#juitterTabsWrapper {border-bottom:1px solid #bbb;height:2em;margin:5px;padding:0;white-space:nowrap;}
+#juitterTabsWrapper li {display:inline;list-style:none;margin:0;padding:0.3em;height:auto;background-color:#ddd;border:1px solid #bbb;margin-right:0.5em;}
+#juitterTabsWrapper li a {padding:0 1em;text-decoration:none;font-weight:bold}
+#juitterTabsWrapper li.active, #juitterTabsWrapper li a.active {background-color:#fff;}
+
+/*end of Juitter CSS */

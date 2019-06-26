@@ -1,0 +1,7 @@
+name = Views jqgrid
+description = A Views style plugin to display jqgrid.
+package = Views
+core = 6.x
+dependencies[] = views
+
+

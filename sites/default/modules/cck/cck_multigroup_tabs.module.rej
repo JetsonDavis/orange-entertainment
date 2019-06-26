@@ -1,0 +1,154 @@
+***************
+*** 0 ****
+--- 1,151 ----
++ <?php
++ // $Id: cck_fieldgroup_tabs.module,v 1.35 2010/01/18 07:08:46 nedjo Exp $
++ 
++ /**
++  * @file
++  * Add tabs display option for CCK multigroups.
++  */
++ 
++ /*
++  * Implementation of hook_form_alter().
++  */
++ function cck_multigroup_tabs_form_alter(&$form, $form_state, $form_id) {
++   if ($form_id == 'node_type_form' && $form['#node_type']->type && !$form['#programmed']) {
++     cck_multigroup_tabs_node_type_form($form, $form['#node_type']->type);
++   }
++ }
++ /*
++  *  Implementation of hook_node_type_form().
++  */
++ function cck_multigroup_tabs_node_type_form(&$form, $node_type) {
++   $form['cck_fieldgroup_tabs']['cck_fieldgroup_tabs_individual_multigroup_tabs_enabled'] = array(
++       '#type' => 'radios',
++       '#title' => t('Display multigroup instances in individual tabs'),
++       '#description' => t("Enable this option to give each instance of a multigroup it's own tab."),
++       '#options' => array(t('Disabled'), t('Enabled')),
++       '#default_value' => variable_get('cck_fieldgroup_tabs_individual_multigroup_tabs_enabled_'.$node_type, 0),
++   );
++   $form['cck_fieldgroup_tabs']['cck_fieldgroup_tabs_individual_multigroup_tabs_skip_single'] = array(
++       '#type' => 'radios',
++       '#title' => t('Do not create multigroup tab if only one tab would be created'),
++       '#description' => t("Skip creating tabs if there is only a single item in the multigroup, and the basics tab isn't enabled."),
++       '#options' => array(t('Disabled'), t('Enabled')),
++       '#default_value' => variable_get('cck_fieldgroup_tabs_individual_multigroup_tabs_skip_single_'.$node_type, 0),
++   );
++   $form['cck_fieldgroup_tabs']['cck_fieldgroup_tabs_individual_multigroup_tabs_title_field'] = array(
++       '#type' => 'textfield',
++       '#title' => t('Use this field for multigroup tab title'),
++       '#description' => t("If present, the field with this field name will be used as the tab title, and will not be displayed inside the tab."),
++       '#default_value' => variable_get('cck_fieldgroup_tabs_individual_multigroup_tabs_title_field_'.$node_type, NULL)
++   );
++   $form['cck_fieldgroup_tabs']['cck_fieldgroup_tabs_residual_repeat'] = array(
++       '#type' => 'radios',
++       '#title' => t('Repeat what would be in the content of the basic tab inside every tab instead'),
++       '#description' => t("Allows using standard content field for logo, footers, blocks, etc. that are common to every tab"),
++       '#options' => array(t('Disabled'), t('Enabled')),
++       '#default_value' => variable_get('cck_fieldgroup_tabs_residual_repeat_'.$node_type, 0)
++   );
++ }
++ 
++ /*
++  *  Implementation of hook_cck_fieldgroup_tabs_add_fieldgroup_tab().
++  */
++ function cck_multigroup_tabs_cck_fieldgroup_tabs_add_fieldgroup_tab($node, $group_name, $group) {
++   if ($group['group_type'] == 'multigroup' && variable_get('cck_fieldgroup_tabs_individual_multigroup_tabs_enabled_'.$node->type, 0)) {
++     // Special processing if the field is a multigroup
++     $multigroup_title_field = variable_get('cck_fieldgroup_tabs_individual_multigroup_tabs_title_field_'.$node->type, NULL);
++     for ($multigroup_count = 0; isset($node->content[$group_name]['group'][$multigroup_count]); $multigroup_count++) {
++       //This loop counts the number of groups in the multigroup.
++     }
++     if ($multigroup_count > 1 || variable_get('cck_fieldgroup_tabs_individual_multigroup_tabs_skip_single_'.$node->type, 0) == false  || variable_get('cck_fieldgroup_tabs_residual_title_'.$node->type, FALSE)) {
++       //Create tabs if we have more than one element in the multigroup, or if we explicitely asked to create it anyway, or if there will be a basics tab.
++       $return_array = array();
++ 
++       for ($i = 0; $i < $multigroup_count; $i++) {
++         foreach ($node->content[$group_name]['group'] as $group_element_key => $group_element) {
++           // Build the form for one tab for each multigroup element.
++           // We basically copy information to create the same structure as
++           // if each multigroup element were part of an individual
++           // fieldgroup
++           if (!is_numeric($group_element_key)) {
++             // Copy common group information in the structure
++             $return_array[$i][$group_element_key] = $group_element;
++           }
++           else if ($group_element_key == $i) {
++             // Assign group elements for the current group index.
++             $return_array[$i][1] = $group_element;
++           }
++         }
++       }
++       //Copy the form into the original node
++       foreach ($return_array as $element_rank => $individual_multigroup_element) {
++         $element = array();
++         foreach ($node->content[$group_name] as $key => $value) {
++           //Copy non-goup elements
++           if ($key != 'group') {
++             $element[$key] = $value;
++           }
++         }
++         $element['group'] = $individual_multigroup_element;
++         $element['#type'] = 'tabpage';
++         $element['#weight'] = $group['weight'] + $element_rank;
++         // Title is required for tabs.
++         // Assign the tab title according to the module configuration
++         if (!empty($multigroup_title_field) && !empty($element['group'][1][$multigroup_title_field][1]['#item']['safe'])) {
++           $element['#title'] = check_plain($element['group'][1][$multigroup_title_field][1]['#item']['safe']);
++           unset($element['group'][1][$multigroup_title_field]);
++         }
++         else {
++           // Display the group label and append the rank to distinguish tabs
++           $element['#title'] = t(check_plain($group['label'] . ' ' . $element_rank));
++         }
++         $node->content['fieldgroup_tabs'][$group_name . '_element_' . $element_rank] = $element;
++         $addedFieldgroupTabs[] = &$node->content['fieldgroup_tabs'][$group_name . '_element_' . $element_rank];
++       }
++       unset($node->content[$group_name]);
++     }
++     else if($multigroup_count == 1 && variable_get('cck_fieldgroup_tabs_individual_multigroup_tabs_skip_single_'.$node->type, 0) == true) {
++       //Memorize the content of the group fieldset to be able to put residual content there if skip single is active, otherwise layout will not be consistent
++       $addedFieldgroupTabs['group']=&$node->content[$group_name]['group'];
++       $addedFieldgroupTabs['#group_name']=$group_name;
++       $addedFieldgroupTabs['#is_fake']=true;
++     }
++   }
++   return $addedFieldgroupTabs;
++ }
++ 
++ /*
++  *  Implementation of hook_cck_fieldgroup_tabs_process_residual().
++  */
++ function cck_multigroup_tabs_cck_fieldgroup_tabs_process_residual($node, $addedFieldgroupTabs) {
++   if (!empty($addedFieldgroupTabs) && variable_get('cck_fieldgroup_tabs_residual_repeat_'. $node->type, FALSE)) {
++     //Only execute if there were actually tabs added, and we want to add residual content to EACH tab.
++     foreach (element_children($node->content) as $key) {
++       if ($key != 'fieldgroup_tabs' && (!isset($addedFieldgroupTabs['#group_name']) || $addedFieldgroupTabs['#group_name'] != $key)) {
++         //Dont delete the fieldgroup tabs, or retained multigroup entry if there is only one
++         $residual[$key] = $node->content[$key];
++         unset($node->content[$key]);
++ 
++         // Move all #content_extra_fields into the residual tab in order to allow tabs to render them correctly.
++         // #pre-render with alter_extra_weights in the tab is needed to correctly sort the elements.
++         $residual['#content_extra_fields'] = $node->content['#content_extra_fields'];
++         $residual['#pre_render'] = array('content_alter_extra_weights');
++         $key = array_search('content_alter_extra_weights', $node->content['#pre_render']);
++         unset($node->content['#content_extra_fields'], $node->content['#pre_render'][$key]);
++       }
++     }
++     if($addedFieldgroupTabs['#is_fake']) {
++       //Add residual content to original group (as there is only one)
++       $addedFieldgroupTabs['group'][0]=array_merge($addedFieldgroupTabs['group'][0], $residual);
++     }
++     else {
++       foreach($addedFieldgroupTabs as $key => &$tab) {
++         //Add residual content to each tab
++         $tab['group'][1]=array_merge($tab['group'][1], $residual);
++       }
++     }
++ 
++ 
++   }
++   return null;
++ }

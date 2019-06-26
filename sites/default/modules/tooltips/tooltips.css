@@ -1,0 +1,29 @@
+a.tooltip {
+	position: relative;
+	text-decoration: none;
+	border-bottom: 1px dashed #aaa;
+	cursor: default;
+}
+
+a.tooltip span {
+	display: none;
+}
+
+a.tooltip:hover {
+	z-index: 100;
+	background: transparent; /* must be set for ie6 */
+	text-decoration: none;
+}
+
+a.tooltip:hover span {
+	display: block;
+	position: absolute; 
+	top: 0;
+	left: 20px;
+	width: 500px;
+	padding: 10px;
+	text-align: left;
+	background: #f1f1e9; /* Post-it Yellow: #ffd; */
+	border: 1px solid black;
+	color: black;
+}

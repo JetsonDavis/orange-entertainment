@@ -1,0 +1,60 @@
+<?php
+// $Id:
+
+/**
+ * Implementation of hook_filter_tips()
+ */
+function tooltips_filter_tips($delta, $format, $long = false) {
+  if ($long) {
+    return t("To add pop-up tool tips to your content's text, enable Tool Tips in the Input Filter configure section of your default filter. To use add [tip:Text to highlight=The tooltip's content] to your node body as many times as you like!");
+  }
+  else {
+    return t("Add tooltips to text. Usage [tip:Text to highlight=The tooltip's content]");
+  }
+}
+
+/**
+ * Implementation of hook_init()
+ * Adds the tooltips stylesheet to the page
+ */
+function tooltips_init() {
+  if(function_exists('drupal_add_css')) // If not caching
+    drupal_add_css(drupal_get_path('module', 'tooltips') .'/tooltips.css', 'module', 'all', TRUE);
+}
+
+function _tooltips_substitute($text) {
+  if (preg_match_all("/\[tip:([^=\\]]+)\=?([^\\]]*)?\]/i", $text, $match)) {
+    foreach ($match[2] as $key => $value) {
+      $link = $match[1][$key];
+      $tip = $match[2][$key];
+      $search[] = $match[0][$key];
+      $replace[] = '<a href="javascript:;" class="tooltip">' . $link 
+                    . '<span>'. $tip .'</span></a>';
+   }
+   return str_replace($search, $replace, $text);
+ }
+return $text;
+}
+
+/**
+ * Implementation of hook_filter()
+ */
+function tooltips_filter($op, $delta = 0, $format = -1, $text = '') {
+  switch ($op) {
+    case 'list':
+      return array(0 => t('Tool Tips'));
+
+    case 'description':
+      return t("Add tooltips to text. Usage [tip:Text to highlight=The tooltip's content]");
+
+    case 'prepare':
+      return $text;
+
+    case 'process':
+      $text = _tooltips_substitute($text);
+      return $text;
+
+    default:
+      return $text;
+  }
+}
